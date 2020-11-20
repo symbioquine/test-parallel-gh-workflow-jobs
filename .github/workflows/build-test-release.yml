@@ -90,5 +90,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print Test Outputs
-        run: echo ${{needs.TestA.outputs.output}} ${{needs.TestB.outputs.output0}}
+        run: echo ${{needs.TestA.outputs.output0}} ${{needs.TestB.outputs.output0}}
 
