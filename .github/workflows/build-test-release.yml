@@ -25,7 +25,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: my_sleepy_cat_image
           tags: localhost:5000/my_sleepy_cat_image:latest
 
       - name: Stop Docker registry
