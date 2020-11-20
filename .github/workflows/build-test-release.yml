@@ -1,0 +1,44 @@
+name: Build Test and Release
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Write Build-generated Prefix
+        run: echo 'Prefix' > $GITHUB_WORKSPACE/Prefix.txt
+
+  testA:
+    name: TestA
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait 60 seconds
+        run: sleep 60
+      - name: Write TestA-output.txt
+        run: echo "$(cat $GITHUB_WORKSPACE/Prefix.txt)B" > $GITHUB_WORKSPACE/TestA-output.txt
+
+  testB:
+    name: TestB
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait 60 seconds
+        run: sleep 60
+      - name: Write TestB-output.txt
+        run: echo "$(cat $GITHUB_WORKSPACE/Prefix.txt)B" > $GITHUB_WORKSPACE/TestB-output.txt
+
+  release:
+    name: Release
+    needs: [TestA, TestB]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Test Outputs
+        run: cat $GITHUB_WORKSPACE/TestA-output.txt $GITHUB_WORKSPACE/TestB-output.txt
+
