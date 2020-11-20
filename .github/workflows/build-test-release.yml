@@ -84,11 +84,61 @@ jobs:
         run: |
           echo "::set-output name=test0::$(docker run localhost:5000/my_sleepy_cat_image:latest /Prefix.txt)B"
 
+  testC:
+    name: TestC
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      output0: ${{ steps.echostep.outputs.test0 }}
+    steps:
+      - name: Download Docker registry data from build job
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-registry-data
+          path: ${{ env.REGISTRY_PATH }}
+
+      - name: Start Docker registry
+        run: |
+          docker run -d -p 5000:5000 -v ${REGISTRY_PATH}:/var/lib/registry --name registry registry:2
+
+      - name: Wait 60 seconds
+        run: sleep 60
+
+      - id: echostep
+        name: Echo TestC-output
+        run: |
+          echo "::set-output name=test0::$(docker run localhost:5000/my_sleepy_cat_image:latest /Prefix.txt)C"
+
+  testD:
+    name: TestD
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      output0: ${{ steps.echostep.outputs.test0 }}
+    steps:
+      - name: Download Docker registry data from build job
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-registry-data
+          path: ${{ env.REGISTRY_PATH }}
+
+      - name: Start Docker registry
+        run: |
+          docker run -d -p 5000:5000 -v ${REGISTRY_PATH}:/var/lib/registry --name registry registry:2
+
+      - name: Wait 60 seconds
+        run: sleep 60
+
+      - id: echostep
+        name: Echo TestD-output
+        run: |
+          echo "::set-output name=test0::$(docker run localhost:5000/my_sleepy_cat_image:latest /Prefix.txt)D"
+
   release:
     name: Release
-    needs: [TestA, TestB]
+    needs: [TestA, TestB, TestC, TestD]
     runs-on: ubuntu-latest
     steps:
       - name: Print Test Outputs
-        run: echo ${{needs.TestA.outputs.output0}} ${{needs.TestB.outputs.output0}}
+        run: echo ${{needs.TestA.outputs.output0}} ${{needs.TestB.outputs.output0}} ${{needs.TestC.outputs.output0}} ${{needs.TestD.outputs.output0}}
 
