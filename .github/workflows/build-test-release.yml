@@ -4,6 +4,9 @@ on:
     branches:
       - 'main'
 
+env:
+  REGISTRY_PATH: ${{ github.workspace }}/registry
+
 jobs:
   build:
     name: Build
@@ -11,28 +14,78 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v2
-      - name: Write Build-generated Prefix
-        run: echo 'Prefix' > $GITHUB_WORKSPACE/Prefix.txt
+        
+      - name: Start Docker registry
+        run: |
+          docker run -d -p 5000:5000 -v ${REGISTRY_PATH}:/var/lib/registry --name registry registry:2
+
+      - name: Sleepy Build Docker Image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: my_sleepy_cat_image
+          tags: localhost:5000/my_sleepy_cat_image:latest
+
+      - name: Stop Docker registry
+        run: docker stop registry
+
+      - name: Upload Docker registry data for testing
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-registry-data
+          path: ${{ env.REGISTRY_PATH }}/
 
   testA:
     name: TestA
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      output0: ${{ steps.echostep.outputs.test0 }}
     steps:
+      - name: Download Docker registry data from build job
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-registry-data
+          path: ${{ env.REGISTRY_PATH }}
+
+      - name: Start Docker registry
+        run: |
+          docker run -d -p 5000:5000 -v ${REGISTRY_PATH}:/var/lib/registry --name registry registry:2
+
       - name: Wait 60 seconds
         run: sleep 60
-      - name: Write TestA-output.txt
-        run: echo "$(cat $GITHUB_WORKSPACE/Prefix.txt)B" > $GITHUB_WORKSPACE/TestA-output.txt
+
+      - id: echostep
+        name: Echo TestA-output
+        run: |
+          echo "::set-output name=test0::$(docker run localhost:5000/my_sleepy_cat_image:latest /Prefix.txt)A"
 
   testB:
     name: TestB
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      output0: ${{ steps.echostep.outputs.test0 }}
     steps:
+      - name: Download Docker registry data from build job
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-registry-data
+          path: ${{ env.REGISTRY_PATH }}
+
+      - name: Start Docker registry
+        run: |
+          docker run -d -p 5000:5000 -v ${REGISTRY_PATH}:/var/lib/registry --name registry registry:2
+
       - name: Wait 60 seconds
         run: sleep 60
-      - name: Write TestB-output.txt
-        run: echo "$(cat $GITHUB_WORKSPACE/Prefix.txt)B" > $GITHUB_WORKSPACE/TestB-output.txt
+
+      - id: echostep
+        name: Echo TestB-output
+        run: |
+          echo "::set-output name=test0::$(docker run localhost:5000/my_sleepy_cat_image:latest /Prefix.txt)B"
 
   release:
     name: Release
@@ -40,5 +93,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print Test Outputs
-        run: cat $GITHUB_WORKSPACE/TestA-output.txt $GITHUB_WORKSPACE/TestB-output.txt
+        run: echo ${{needs.TestA.outputs.output}} ${{needs.TestB.outputs.output0}}
 
