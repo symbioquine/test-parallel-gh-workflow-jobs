@@ -20,7 +20,10 @@ jobs:
           docker run -d -p 5000:5000 -v ${REGISTRY_PATH}:/var/lib/registry --name registry registry:2
 
       - name: Sleepy Build Docker Image
-        run: docker build -t localhost:5000/my_sleepy_cat_image:latest && docker push localhost:5000/my_sleepy_cat_image:latest
+        run: docker build -t localhost:5000/my_sleepy_cat_image:latest
+
+      - name: Push Docker Image
+        run: docker push localhost:5000/my_sleepy_cat_image:latest
 
       - name: Stop Docker registry
         run: docker stop registry
